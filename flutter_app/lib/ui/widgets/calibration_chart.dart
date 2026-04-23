@@ -61,7 +61,7 @@ class CalibrationChart extends StatelessWidget {
                 sideTitles: const SideTitles(showTitles: true, reservedSize: 28),
               ),
               leftTitles: AxisTitles(
-                axisNameWidget: Text('${sensor.unitY}'),
+                axisNameWidget: Text(sensor.unitY),
                 sideTitles: const SideTitles(showTitles: true, reservedSize: 56),
               ),
             ),
