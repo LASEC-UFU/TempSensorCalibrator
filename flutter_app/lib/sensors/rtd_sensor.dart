@@ -7,7 +7,7 @@ import '../math/linear_algebra.dart';
 /// Modelo Callendar–Van Dusen (positivo, T ≥ 0):
 ///   R(T) = R0 · (1 + A·T + B·T² + C·T³)
 /// 3 incógnitas (A, B, C) com R0 fixo. Mais de 3 pontos: LSQ.
-class RtdSensor implements SensorModel {
+class RtdSensor extends SensorModel {
   RtdSensor({this.r0 = 100.0});
   final double r0;
 

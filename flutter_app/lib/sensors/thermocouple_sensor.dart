@@ -10,7 +10,7 @@ import '../math/linear_algebra.dart';
 ///   E(T) = c0 + c1·T + c2·T² + ... + c_n·Tⁿ
 ///
 /// Conversão inversa (E → T) por Newton.
-class ThermocoupleSensor implements SensorModel {
+class ThermocoupleSensor extends SensorModel {
   ThermocoupleSensor({
     this.typeLabel = 'K',
     this.degree = 4,

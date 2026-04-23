@@ -5,21 +5,42 @@ import '../domain/calibration_point.dart';
 import '../domain/sensor_model.dart';
 import '../math/num_utils.dart';
 import 'theme/app_palette.dart';
-import 'widgets/calibration_chart.dart';
 import 'widgets/section_card.dart';
 
-class SensorCalibrationPage extends StatefulWidget {
-  const SensorCalibrationPage({super.key, required this.sensor});
+/// Painel lateral direito: pontos, coeficientes, calculadora e faixa.
+/// Notifica mudanças via [onChanged] para o gráfico se atualizar.
+class SensorConfigPanel extends StatefulWidget {
+  const SensorConfigPanel({
+    super.key,
+    required this.sensor,
+    required this.onChanged,
+  });
+
   final SensorModel sensor;
+  final void Function(SensorPanelState state) onChanged;
 
   @override
-  State<SensorCalibrationPage> createState() => _SensorCalibrationPageState();
+  State<SensorConfigPanel> createState() => _SensorConfigPanelState();
 }
 
-class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
-  late List<CalibrationPoint> _points;
+class SensorPanelState {
+  SensorPanelState({
+    required this.points,
+    required this.result,
+    required this.xMin,
+    required this.xMax,
+  });
+  final List<CalibrationPoint> points;
+  final CalibrationResult? result;
+  final double xMin;
+  final double xMax;
+}
+
+class _SensorConfigPanelState extends State<SensorConfigPanel> {
   late List<TextEditingController> _xCtrls;
   late List<TextEditingController> _yCtrls;
+  late TextEditingController _xMinCtrl;
+  late TextEditingController _xMaxCtrl;
 
   CalibrationResult? _result;
   String? _error;
@@ -29,29 +50,30 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
   String _calcYOut = '—';
   String _calcXOut = '—';
 
-  late TextEditingController _xMinCtrl;
-  late TextEditingController _xMaxCtrl;
-
   Color get _accent => AppPalette.forSensorId(widget.sensor.id);
 
   @override
   void initState() {
     super.initState();
-    _resetPoints();
+    _initFromSensor();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoCompute());
+  }
+
+  void _initFromSensor() {
+    final pts = widget.sensor.defaultPoints;
+    _xCtrls =
+        pts.map((p) => TextEditingController(text: _fmt(p.x))).toList();
+    _yCtrls =
+        pts.map((p) => TextEditingController(text: _fmt(p.y))).toList();
     final r = widget.sensor.defaultRange();
     _xMinCtrl = TextEditingController(text: _fmt(r.$1));
     _xMaxCtrl = TextEditingController(text: _fmt(r.$2));
-    _autoCompute();
-  }
-
-  void _resetPoints() {
-    _points = List.of(widget.sensor.defaultPoints);
-    _xCtrls =
-        _points.map((p) => TextEditingController(text: _fmt(p.x))).toList();
-    _yCtrls =
-        _points.map((p) => TextEditingController(text: _fmt(p.y))).toList();
-    _calcXCtrl.text = _fmt(_points.first.x);
-    _calcYCtrl.text = _fmt(_points.first.y);
+    _calcXCtrl.text = _fmt(pts.first.x);
+    _calcYCtrl.text = _fmt(pts.first.y);
+    _result = null;
+    _error = null;
+    _calcYOut = '—';
+    _calcXOut = '—';
   }
 
   String _fmt(double v) {
@@ -92,16 +114,43 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
     });
   }
 
+  double get _xMin {
+    try {
+      return normFloat(_xMinCtrl.text);
+    } catch (_) {
+      return widget.sensor.defaultRange().$1;
+    }
+  }
+
+  double get _xMax {
+    try {
+      return normFloat(_xMaxCtrl.text);
+    } catch (_) {
+      return widget.sensor.defaultRange().$2;
+    }
+  }
+
+  void _emit() {
+    widget.onChanged(SensorPanelState(
+      points: _readPoints(),
+      result: _result,
+      xMin: _xMin,
+      xMax: _xMax,
+    ));
+  }
+
   void _autoCompute() {
     try {
       final pts = _readPoints();
       final r = widget.sensor.compute(pts);
       setState(() {
-        _points = pts;
         _result = r;
         _error = null;
       });
-    } catch (_) {/* silencioso */}
+      _emit();
+    } catch (_) {
+      _emit();
+    }
   }
 
   void _onCompute() {
@@ -109,12 +158,13 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
       final pts = _readPoints();
       final r = widget.sensor.compute(pts);
       setState(() {
-        _points = pts;
         _result = r;
         _error = null;
       });
+      _emit();
     } catch (e) {
       setState(() => _error = e.toString());
+      _emit();
     }
   }
 
@@ -126,14 +176,7 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
       for (final c in _yCtrls) {
         c.dispose();
       }
-      _resetPoints();
-      _result = null;
-      _error = null;
-      _calcYOut = '—';
-      _calcXOut = '—';
-      final r = widget.sensor.defaultRange();
-      _xMinCtrl.text = _fmt(r.$1);
-      _xMaxCtrl.text = _fmt(r.$2);
+      _initFromSensor();
     });
     _autoCompute();
   }
@@ -152,6 +195,7 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
       _xCtrls.removeAt(i).dispose();
       _yCtrls.removeAt(i).dispose();
     });
+    _autoCompute();
   }
 
   void _calcYFromX() {
@@ -164,7 +208,7 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
       final y = widget.sensor.yFromX(_result!, v);
       setState(() => _calcYOut =
           '${y.toStringAsFixed(widget.sensor.unitY == 'mV' ? 4 : 3)} ${widget.sensor.unitY}');
-    } catch (e) {
+    } catch (_) {
       setState(() => _calcYOut = 'erro');
     }
   }
@@ -179,7 +223,7 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
       final x = widget.sensor.xFromY(_result!, v);
       setState(
           () => _calcXOut = '${x.toStringAsFixed(3)} ${widget.sensor.unitX}');
-    } catch (e) {
+    } catch (_) {
       setState(() => _calcXOut = 'erro');
     }
   }
@@ -187,7 +231,6 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
   @override
   Widget build(BuildContext context) {
     final s = widget.sensor;
-    final isWide = MediaQuery.sizeOf(context).width > 1100;
 
     final inputs = SectionCard(
       title: 'PONTOS DE CALIBRAÇÃO',
@@ -442,7 +485,7 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
             child: _NumField(
               controller: _xMinCtrl,
               label: 'mínimo',
-              onSubmitted: (_) => setState(() {}),
+              onSubmitted: (_) => _emit(),
             ),
           ),
           const SizedBox(width: 8),
@@ -450,47 +493,20 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
             child: _NumField(
               controller: _xMaxCtrl,
               label: 'máximo',
-              onSubmitted: (_) => setState(() {}),
+              onSubmitted: (_) => _emit(),
             ),
           ),
           const SizedBox(width: 8),
           OutlinedButton(
-            onPressed: () => setState(() {}),
+            onPressed: _emit,
             child: const Text('Atualizar'),
           ),
         ],
       ),
     );
 
-    double xMin, xMax;
-    try {
-      xMin = normFloat(_xMinCtrl.text);
-      xMax = normFloat(_xMaxCtrl.text);
-    } catch (_) {
-      final r = s.defaultRange();
-      xMin = r.$1;
-      xMax = r.$2;
-    }
-
-    final chart = SectionCard(
-      title: '${s.unitY} × ${s.unitX}',
-      icon: Icons.show_chart,
-      accent: _accent,
-      child: SizedBox(
-        height: 420,
-        child: CalibrationChart(
-          sensor: s,
-          result: _result,
-          points: _points,
-          xMin: xMin,
-          xMax: xMax,
-          accentColor: _accent,
-        ),
-      ),
-    );
-
-    final left = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
       children: [
         inputs,
         const SizedBox(height: 14),
@@ -500,25 +516,6 @@ class _SensorCalibrationPageState extends State<SensorCalibrationPage> {
         const SizedBox(height: 14),
         rangeCard,
       ],
-    );
-
-    final body = isWide
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: 480, child: left),
-              const SizedBox(width: 18),
-              Expanded(child: chart),
-            ],
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [left, const SizedBox(height: 14), chart],
-          );
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-      child: body,
     );
   }
 }
