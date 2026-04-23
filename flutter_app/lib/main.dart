@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'domain/calibration_point.dart';
 import 'domain/sensor_model.dart';
 import 'sensors/sensor_registry.dart';
+import 'ui/about_dialog.dart';
 import 'ui/sensor_config_panel.dart';
 import 'ui/theme/app_palette.dart';
 import 'ui/theme/app_theme.dart';
@@ -355,6 +356,12 @@ class _AppHeader extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: 'Sobre o modelo',
+              icon: const Icon(Icons.info_outline, color: Colors.white),
+              onPressed: () =>
+                  showSensorAboutDialog(context, sensor: sensor),
             ),
             Builder(builder: (ctx) {
               return IconButton(
