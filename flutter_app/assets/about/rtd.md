@@ -10,33 +10,40 @@ Características:
 
 ---
 
-## 1. Curva de Callendar-Van Dusen
+## 1. Equação de Callendar-Van Dusen
 
-Para temperaturas **acima de 0 °C**:
+Neste módulo, a forma usada segue a divisão clássica por faixa:
 
-$$
-R(T) \;=\; R_0 \,\big(1 + A\,T + B\,T^{2} + C\,T^{3}\big)
-$$
-
-onde:
-
-- $R_0$ é a resistência a 0 °C;
-- $A, B, C$ são os coeficientes ajustados;
-- $T$ é a temperatura em °C.
-
-Para uma Pt100 padrão (IEC 60751), valores nominais típicos são:
+Para **T >= 0 °C**:
 
 $$
-A \approx 3{,}9083\!\times\!10^{-3},\quad
-B \approx -5{,}775\!\times\!10^{-7},\quad
-C \approx 0
+R(T) = R_0 \,\big(1 + A\,T + B\,T^{2}\big)
 $$
+
+Para **T < 0 °C**:
+
+$$
+R(T) = R_0 \,\big(1 + A\,T + B\,T^{2} + C\,(T-100)\,T^{3}\big)
+$$
+
+Assim, o termo com `C` só aparece no ramo negativo.
 
 ---
 
-## 2. Aproximação linear por α
+## 2. Regra adotada para ajuste dos coeficientes
 
-No material de apoio, o RTD também é apresentado pela aproximação:
+O programa agora trabalha assim:
+
+1. Se todos os pontos forem **negativos**, ele ajusta **A, B e C**.
+2. Se houver temperaturas **mistas** ou apenas **não negativas**, ele ajusta apenas **A e B**.
+
+Isso é mostrado também no painel de **coeficientes** por meio de uma nota automática.
+
+---
+
+## 3. Aproximação linear por α
+
+Além da curva de Callendar-Van Dusen, o gráfico também mostra a aproximação:
 
 $$
 R(T) = R_0(1+\alpha T)
@@ -48,40 +55,14 @@ $$
 \alpha = 0{,}0038459\ {\circ\mathrm{C}}^{-1}
 $$
 
-Essa forma é mais simples e útil para comparação visual com a curva mais completa de Callendar-Van Dusen.
-
----
-
-## 3. Ajuste por mínimos quadrados
-
-Dados $N \ge 3$ pares $(T_i,\ R_i)$, definimos $y_i = \dfrac{R_i}{R_0} - 1$ e resolvemos o sistema:
-
-$$
-\underbrace{\begin{bmatrix}
-T_1 & T_1^{2} & T_1^{3} \\
-T_2 & T_2^{2} & T_2^{3} \\
-\vdots & \vdots & \vdots \\
-T_N & T_N^{2} & T_N^{3}
-\end{bmatrix}}_{X}
-\begin{bmatrix} A \\ B \\ C \end{bmatrix}
-\;=\;
-\begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_N \end{bmatrix}
-$$
-
-via **equações normais**:
-
-$$
-\big(X^{T} X\big)\,\mathbf{c} \;=\; X^{T}\,\mathbf{y}
-$$
-
-A inversão $R \rightarrow T$ da calculadora continua sendo feita por **Newton-Raphson** sobre a curva Callendar-Van Dusen.
+Essa segunda curva serve para comparação visual com o modelo mais completo.
 
 ---
 
 ## 4. Como usar este módulo
 
-1. Defina $R_0$ implicitamente pelo seu sensor (Pt100 = 100 $\Omega$).
-2. Insira **3 ou mais** pares $(T,\ R)$.
-3. Clique em **Calcular** para obter $A$, $B$, $C$, além de $R_0$ e $\alpha$.
-4. O gráfico mostra duas curvas: **Callendar-Van Dusen** e **Linear / α**.
+1. Insira **3 ou mais** pares $(T,\ R)$.
+2. Clique em **Calcular**.
+3. Veja no painel se o ajuste encontrado foi **A/B** ou **A/B/C**.
+4. Compare no gráfico a curva **Callendar-Van Dusen** com a curva **Linear / α**.
 5. Use a **calculadora** para conversões $T \leftrightarrow R$.
