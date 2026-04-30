@@ -1,4 +1,4 @@
-# Sobre — RTD (Pt100 / Pt1000)
+# Sobre - RTD (Pt100 / Pt1000)
 
 Os **RTDs** (*Resistance Temperature Detectors*) são sensores cuja resistência elétrica varia de forma **quase linear** com a temperatura. Os mais comuns são os de **platina**, designados pela resistência nominal a 0 °C: **Pt100** ($R_0 = 100\ \Omega$) e **Pt1000** ($R_0 = 1000\ \Omega$).
 
@@ -10,7 +10,7 @@ Características:
 
 ---
 
-## 1. Equação de Callendar–Van Dusen
+## 1. Curva de Callendar-Van Dusen
 
 Para temperaturas **acima de 0 °C**:
 
@@ -20,11 +20,11 @@ $$
 
 onde:
 
-- $R_0$ é a resistência a 0 °C (parâmetro fixo do sensor);
+- $R_0$ é a resistência a 0 °C;
 - $A, B, C$ são os coeficientes ajustados;
 - $T$ é a temperatura em °C.
 
-Para a Pt100 padrão (IEC 60751), os valores nominais são:
+Para uma Pt100 padrão (IEC 60751), valores nominais típicos são:
 
 $$
 A \approx 3{,}9083\!\times\!10^{-3},\quad
@@ -34,9 +34,27 @@ $$
 
 ---
 
-## 2. Ajuste por Mínimos Quadrados
+## 2. Aproximação linear por α
 
-Dados $N \ge 3$ pares $(T_i,\ R_i)$, definimos $y_i = \dfrac{R_i}{R_0} - 1$ e resolvemos o sistema sobredeterminado:
+No material de apoio, o RTD também é apresentado pela aproximação:
+
+$$
+R(T) = R_0(1+\alpha T)
+$$
+
+com:
+
+$$
+\alpha = 0{,}0038459\ {\circ\mathrm{C}}^{-1}
+$$
+
+Essa forma é mais simples e útil para comparação visual com a curva mais completa de Callendar-Van Dusen.
+
+---
+
+## 3. Ajuste por mínimos quadrados
+
+Dados $N \ge 3$ pares $(T_i,\ R_i)$, definimos $y_i = \dfrac{R_i}{R_0} - 1$ e resolvemos o sistema:
 
 $$
 \underbrace{\begin{bmatrix}
@@ -56,14 +74,14 @@ $$
 \big(X^{T} X\big)\,\mathbf{c} \;=\; X^{T}\,\mathbf{y}
 $$
 
-A inversão $R \rightarrow T$ é feita por **Newton–Raphson**.
+A inversão $R \rightarrow T$ da calculadora continua sendo feita por **Newton-Raphson** sobre a curva Callendar-Van Dusen.
 
 ---
 
-## 3. Como usar este módulo
+## 4. Como usar este módulo
 
-1. Defina $R_0$ implicitamente pelo seu sensor (Pt100 = 100 Ω).
-2. Insira **3 ou mais** pares $(T,\ R)$ — quanto mais pontos, melhor o ajuste por mínimos quadrados.
-3. Clique em **Calcular**: os coeficientes $A$, $B$, $C$ aparecem ao lado.
-4. O gráfico mostra a curva ajustada e os pontos medidos.
+1. Defina $R_0$ implicitamente pelo seu sensor (Pt100 = 100 $\Omega$).
+2. Insira **3 ou mais** pares $(T,\ R)$.
+3. Clique em **Calcular** para obter $A$, $B$, $C$, além de $R_0$ e $\alpha$.
+4. O gráfico mostra duas curvas: **Callendar-Van Dusen** e **Linear / α**.
 5. Use a **calculadora** para conversões $T \leftrightarrow R$.

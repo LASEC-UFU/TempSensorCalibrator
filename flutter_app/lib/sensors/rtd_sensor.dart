@@ -4,12 +4,18 @@ import '../math/linear_algebra.dart';
 
 /// Sensor RTD (ex.: Pt100). Pontos: x = T(°C), y = R(Ω).
 ///
-/// Modelo Callendar–Van Dusen (positivo, T ≥ 0):
+/// Curva principal:
 ///   R(T) = R0 · (1 + A·T + B·T² + C·T³)
 /// 3 incógnitas (A, B, C) com R0 fixo. Mais de 3 pontos: LSQ.
+///
+/// Curva secundária:
+///   R(T) = R0 · (1 + α·T)
+/// conforme a aproximação linear apresentada no material de apoio.
 class RtdSensor extends SensorModel {
-  RtdSensor({this.r0 = 100.0});
+  RtdSensor({this.r0 = 100.0, this.alpha = 0.0038459});
+
   final double r0;
+  final double alpha;
 
   @override
   String get id => 'rtd';
@@ -42,6 +48,7 @@ class RtdSensor extends SensorModel {
     if (points.any((p) => p.y <= 0)) {
       throw ArgumentError('Resistência deve ser > 0.');
     }
+
     // y_i = R_i/R0 - 1 = A·T + B·T² + C·T³
     final x = <List<double>>[];
     final y = <double>[];
@@ -55,12 +62,13 @@ class RtdSensor extends SensorModel {
       modelId: id,
       coefficients: {
         'R0': r0,
+        'α': alpha,
         'A': c[0],
         'B': c[1],
         'C': c[2],
       },
       notes:
-          'R(T) = R0·(1 + A·T + B·T² + C·T³) — Callendar–Van Dusen (T ≥ 0 °C).',
+          'Curvas exibidas: Callendar–Van Dusen e aproximação linear R(T) = R0·(1 + α·T).',
     );
   }
 
@@ -80,11 +88,30 @@ class RtdSensor extends SensorModel {
     final b = r.coefficients['B']!;
     final c = r.coefficients['C']!;
     final target = resistance / r0 - 1.0;
-    // Resolve A·T + B·T² + C·T³ = target por Newton.
+
+    // Mantém a calculadora principal baseada em CVD.
     return LinearAlgebra.newton(
       f: (t) => a * t + b * t * t + c * t * t * t - target,
       df: (t) => a + 2 * b * t + 3 * c * t * t,
-      x0: target / (a == 0 ? 3.85e-3 : a),
+      x0: target / (a == 0 ? alpha : a),
     );
   }
+
+  double _alphaR(CalibrationResult r, double tC) {
+    final r0 = r.coefficients['R0']!;
+    final alpha = r.coefficients['α']!;
+    return r0 * (1 + alpha * tC);
+  }
+
+  @override
+  List<ModelCurve> curves(CalibrationResult result) => [
+        ModelCurve(
+          label: 'Callendar–Van Dusen',
+          evaluate: (x) => yFromX(result, x),
+        ),
+        ModelCurve(
+          label: 'Linear / α',
+          evaluate: (x) => _alphaR(result, x),
+        ),
+      ];
 }
